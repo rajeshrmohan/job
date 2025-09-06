@@ -80,6 +80,26 @@
         .notification-header { font-weight: 600; color: #22543d; margin-bottom: 5px; padding-right: 80px; }
         .badge { display: inline-block; padding: 4px 8px; background: #667eea; color: white; border-radius: 12px; font-size: 0.7rem; font-weight: 500; }
 
+        /* --- Responsive Adjustments for Contacts --- */
+        @media (max-width: 480px) {
+            .contact-card {
+                flex-wrap: wrap;
+                position: relative;
+                padding-bottom: 60px; /* Space for buttons */
+            }
+            .contact-info {
+                flex-basis: calc(100% - 65px); /* Full width minus avatar */
+            }
+            .contact-links {
+                position: absolute;
+                bottom: 15px;
+                right: 15px;
+                left: 15px;
+                justify-content: flex-end;
+                margin-left: 0;
+            }
+        }
+
         /* --- PWA Install Button Style --- */
         .install-btn {
             position: absolute;
