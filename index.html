@@ -100,27 +100,32 @@
             }
         }
 
-        /* --- PWA Install Button Style --- */
-        .install-btn {
-            position: absolute;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            background: #5a67d8;
+        /* --- PWA Install Toast --- */
+        .install-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
             color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            transition: background 0.3s ease;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            max-width: 90%;
+            width: 450px;
+            animation: slideInUp 0.5s ease-out;
         }
-        .install-btn:hover { background: #434190; }
-        /* Hide install button on very small screens to prevent overlap */
-        @media (max-width: 420px) {
-            .install-btn { display: none !important; }
+        .toast-content { display: flex; align-items: center; width: 100%; }
+        .toast-content p { flex-grow: 1; margin: 0; font-size: 0.9rem; line-height: 1.4; }
+        .toast-btn { background: #667eea; color: white; border: none; border-radius: 8px; padding: 8px 12px; font-weight: 600; cursor: pointer; margin-left: 15px; flex-shrink: 0; }
+        .toast-dismiss-btn { background: none; border: none; color: #999; font-size: 1.5rem; cursor: pointer; padding: 0 5px; margin-left: 10px; line-height: 1; }
+
+        @keyframes slideInUp {
+            from { bottom: -100px; opacity: 0; }
+            to { bottom: 20px; opacity: 1; }
         }
     </style>
 </head>
@@ -130,7 +135,6 @@
         <div class="header">
             <h1>Student Support Hub</h1>
             <p>Your On-the-Job Training Companion</p>
-            <button id="install-button" class="install-btn" style="display: none;">Install App</button>
         </div>
 
         <!-- Navigation Tabs -->
@@ -198,6 +202,22 @@
                 <div class="form-group"><label for="reminderNote">Notes:</label><textarea id="reminderNote" class="form-textarea" placeholder="Additional notes..."></textarea></div>
                 <button class="btn" id="reminderSubmitBtn" onclick="addOrUpdateReminder()">Set Reminder</button>
             </div>
+        </div>
+    </div>
+
+    <!-- PWA Install Prompts -->
+    <div id="install-toast" class="install-toast" style="display: none;">
+        <div class="toast-content">
+            <p>Get the full app experience. Install Student Support Hub on your device.</p>
+            <button id="install-btn-toast" class="toast-btn">Install</button>
+            <button id="install-dismiss-btn" class="toast-dismiss-btn">×</button>
+        </div>
+    </div>
+
+    <div id="ios-install-toast" class="install-toast" style="display: none;">
+        <div class="toast-content">
+            <p>To install, tap the Share button <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='18' height='18' fill='%23667eea'%3E%3Cpath d='M12 2a3 3 0 0 1 3 3v8a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm0 2a1 1 0 0 0-1 1v8a1 1 0 0 0 2 0V5a1 1 0 0 0-1-1z'/%3E%3Cpath d='M13 18.5c0 .83-.67 1.5-1.5 1.5h-1A1.5 1.5 0 0 1 9 18.5v-5a.5.5 0 0 1 1 0v5h2v-5a.5.5 0 0 1 1 0v5z'/%3E%3Cpath d='M5 8a1 1 0 0 1 1-1h1a1 1 0 0 1 0 2H6a1 1 0 0 1-1-1zm14 0a1 1 0 0 1 1-1h1a1 1 0 0 1 0 2h-1a1 1 0 0 1-1-1z'/%3E%3C/svg%3E" alt="Share Icon" style="vertical-align: middle;"> and then "Add to Home Screen".</p>
+            <button id="ios-dismiss-btn" class="toast-dismiss-btn">×</button>
         </div>
     </div>
 
@@ -450,20 +470,56 @@
     <!-- SCRIPT SECTION 2: PWA Installation Logic -->
     <script>
         let deferredPrompt;
-        const installButton = document.getElementById('install-button');
+        const installToast = document.getElementById('install-toast');
+        const iosInstallToast = document.getElementById('ios-install-toast');
+        const installBtnToast = document.getElementById('install-btn-toast');
+        const installDismissBtn = document.getElementById('install-dismiss-btn');
+        const iosDismissBtn = document.getElementById('ios-dismiss-btn');
 
+        // --- Detect iOS --- 
+        function isIOS() {
+            return [
+                'iPad Simulator',
+                'iPhone Simulator',
+                'iPod Simulator',
+                'iPad',
+                'iPhone',
+                'iPod'
+            ].includes(navigator.platform)
+            // Also covers iPad on iOS 13+ detection
+            || (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+        }
+
+        // --- Hide Toasts --- 
+        function hideAllToasts() {
+            if (installToast) installToast.style.display = 'none';
+            if (iosInstallToast) iosInstallToast.style.display = 'none';
+        }
+
+        // --- Logic for Android/Desktop (using beforeinstallprompt) ---
         window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent the default mini-infobar from appearing on mobile
             e.preventDefault();
+            // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            if (installButton) {
-                installButton.style.display = 'block';
+            // Show our custom install prompt
+            if (installToast) {
+                installToast.style.display = 'block';
             }
         });
 
-        if (installButton) {
-            installButton.addEventListener('click', async () => {
+        // --- Logic for iOS --- 
+        if (isIOS() && !window.navigator.standalone) {
+            if (iosInstallToast) {
+                iosInstallToast.style.display = 'block';
+            }
+        }
+
+        // --- Event Listeners for Buttons ---
+        if (installBtnToast) {
+            installBtnToast.addEventListener('click', async () => {
+                hideAllToasts();
                 if (deferredPrompt) {
-                    installButton.style.display = 'none';
                     deferredPrompt.prompt();
                     const { outcome } = await deferredPrompt.userChoice;
                     console.log(`User response to the install prompt: ${outcome}`);
@@ -472,10 +528,21 @@
             });
         }
 
+        if (installDismissBtn) {
+            installDismissBtn.addEventListener('click', () => {
+                hideAllToasts();
+            });
+        }
+
+        if (iosDismissBtn) {
+            iosDismissBtn.addEventListener('click', () => {
+                hideAllToasts();
+            });
+        }
+
+        // --- Listen for app installation --- 
         window.addEventListener('appinstalled', () => {
-            if (installButton) {
-                installButton.style.display = 'none';
-            }
+            hideAllToasts();
             deferredPrompt = null;
             console.log('PWA was installed');
         });
